@@ -37,9 +37,43 @@ Regra de ouro: **segmento (A-G, DP) sempre passa por resistor; comum de dígito
 > (1234 saiu correto). Se algum dia o "1" sair esquisito, é só inverter os fios
 > de D2 e D3.
 
+## Teclado de membrana 4x4 (input)
+
+Teclado 4x4 lido junto com o display. Como display (12 pinos) + teclado (8 pinos)
+usam os 20 GPIO do Uno, o teclado ocupa `A0-A5 + D0 + D1`. **D0/D1 são o RX/TX do
+USB**: se um upload falhar, tire os 2 fios de D0/D1, suba, e replugue. Sem Serial
+disponível (por isso o feedback de diagnóstico foi feito no próprio display).
+
+### Pinout REAL do teclado (levantado na bancada, não confie em foto)
+
+Cada tecla fecha um par (linha, coluna). Descoberto com o scanner
+(`teclado_scanner_display`). **Atenção: os conectores 7 e 8 estão invertidos**
+em relação à ordem ingênua (coluna 3 = conector 8; coluna 4 = conector 7).
+
+| Papel     | Conector | Arduino |
+|:---|:---:|:---:|
+| Linha 1   | 1 | A0 |
+| Linha 2   | 2 | A1 |
+| Linha 3   | 3 | A2 |
+| Linha 4   | 4 | A3 |
+| Coluna 1  | 5 | A4 |
+| Coluna 2  | 6 | A5 |
+| Coluna 3  | 8 | D1 |
+| Coluna 4  | 7 | D0 |
+
+Layout das teclas (padrão): linhas `1 2 3 A` / `4 5 6 B` / `7 8 9 C` / `* 0 # D`.
+
+Biblioteca: **Keypad** 3.1.1 (`arduino-cli lib install "Keypad"`).
+
 ## Arquivos
 
 - `teste_display_1234/` — sketch final. Usa SevSeg, mostra "1234" fixo.
+- `contador_0_9999/` — conta 0→9999 no display (millis, não-bloqueante).
+- `teclado_display/` — digita número no teclado 4x4 e mostra no display (`*` limpa).
+- `teclado_scanner_display/` — scanner do teclado com feedback no display (mapeia
+  qual par de conectores cada tecla fecha, sem Serial).
+- `teclado_scanner/` — versão do scanner que imprime no Serial (uso standalone,
+  display desconectado).
 - `diagnostico/diag_static/` — teste estático parametrizado (MODE A = mapa das
   posições/comuns; MODE B = mapa das letras/segmentos). Foi o que destravou o
   mapeamento: acende UMA coisa por vez, sem animação.
