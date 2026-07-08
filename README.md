@@ -65,10 +65,32 @@ Layout das teclas (padrão): linhas `1 2 3 A` / `4 5 6 B` / `7 8 9 C` / `* 0 # D
 
 Biblioteca: **Keypad** 3.1.1 (`arduino-cli lib install "Keypad"`).
 
+## Mini cofre (senha de 4 dígitos, programável, EEPROM)
+
+`senha_teclado/` — trava com senha de 4 dígitos digitada no teclado 4x4, feedback
+no display. Senha **persistente na EEPROM** (sobrevive a desligar) e **programável
+pelo próprio teclado**. Senha de fábrica (primeira vez): **`1234`**.
+
+Teclas:
+- **`0-9`** — digita (checa automático no 4º dígito): certo → `OPEn`, errado → `Err`.
+- **`*`** — limpa a entrada atual.
+- **`D`** — apaga o último dígito (backspace).
+- **`A`** — trocar senha: `OLd` (digite a atual) → se ok `SEt` (digite a nova) →
+  salva e mostra `donE`. Atual errada → `Err`.
+- **`#`** — liga/desliga stand-by (display apagado + teclado ignorado).
+
+Notas de implementação:
+- 7 segmentos não renderiza "OK" (o "K" fica ilegível), então o feedback usa
+  palavras que saem limpas: `OPEn`, `Err`, `donE`, `SEt`, `OLd`.
+- EEPROM: byte MAGIC (0x42) no endereço 0 detecta primeiro boot e grava o default;
+  senha nos endereços 1-4. `EEPROM.update` só escreve se mudou (poupa desgaste).
+- Requer libs **SevSeg** e **Keypad** (EEPROM já vem no core AVR).
+
 ## Arquivos
 
 - `teste_display_1234/` — sketch final. Usa SevSeg, mostra "1234" fixo.
 - `contador_0_9999/` — conta 0→9999 no display (millis, não-bloqueante).
+- `senha_teclado/` — mini cofre: senha 4 dígitos programável + stand-by (ver acima).
 - `teclado_display/` — digita número no teclado 4x4 e mostra no display (`*` limpa).
 - `teclado_scanner_display/` — scanner do teclado com feedback no display (mapeia
   qual par de conectores cada tecla fecha, sem Serial).
