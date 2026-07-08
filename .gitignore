@@ -1,0 +1,6 @@
+# artefatos de build do arduino-cli
+build/
+*.hex
+*.elf
+*.bin
+.DS_Store
