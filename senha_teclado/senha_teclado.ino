@@ -9,6 +9,12 @@
  *   - '*'  -> limpa a entrada atual
  *   - 'D'  -> apaga o ultimo digito (backspace)
  *   - '#'  -> liga/desliga stand-by (display apagado + teclado ignorado)
+ *
+ * Entrada MASCARADA: slots vazios = '-', digito digitado = 'H' (B,C,E,F,G;
+ * segmentos A e D apagados; mascara em X/H, nao revela o numero).
+ * Limite de tentativas: 3 erros seguidos -> bloqueia 30s (contagem regressiva
+ * no display). Acertar zera o contador. (Bloqueio em RAM: desligar a placa
+ * reseta o bloqueio.)
  *   - 'A'  -> trocar senha: "OLd" (digite a atual) -> se ok "SEt" (digite a nova)
  *             -> salva e mostra "donE". Atual errada -> "Err".
  *   - Senha de fabrica (1a vez): 1234.
@@ -49,6 +55,11 @@ Estado estado = TRAVADO;
 
 bool standby = false;   // '#' liga/desliga (display apagado + input travado)
 
+const byte          MAX_TENTATIVAS = 3;        // erros seguidos ate bloquear
+const unsigned long LOCKOUT_MS     = 30000UL;  // 30s de bloqueio
+byte          erros       = 0;
+unsigned long bloqueadoAte = 0;                // millis ate quando fica bloqueado
+
 void carregarSenha() {
   if (EEPROM.read(EE_MAGIC) != MAGIC) {          // primeira vez: default 1234
     const char* def = "1234";
@@ -81,19 +92,29 @@ void setup() {
   carregarSenha();
 }
 
+void registrarErro() {
+  erros++;
+  if (erros >= MAX_TENTATIVAS) {
+    bloqueadoAte = millis() + LOCKOUT_MS;
+    erros = 0;
+    mostrarPor("Loc ", 1200);
+  }
+}
+
 void processar4() {
   buf[4] = '\0';
   bool ok = (strncmp(buf, senha, 4) == 0);
 
   switch (estado) {
     case TRAVADO:
-      mostrarPor(ok ? "OPEn" : "Err ", 1500);
+      if (ok) { erros = 0; mostrarPor("OPEn", 1500); }
+      else    { mostrarPor("Err ", 1500); registrarErro(); }
       estado = TRAVADO;
       break;
 
     case VERIF_ANTIGA:
-      if (ok) { mostrarPor("SEt ", 1200); estado = NOVA; }
-      else    { mostrarPor("Err ", 1500); estado = TRAVADO; }
+      if (ok) { erros = 0; mostrarPor("SEt ", 1200); estado = NOVA; }
+      else    { mostrarPor("Err ", 1500); estado = TRAVADO; registrarErro(); }
       break;
 
     case NOVA:
@@ -121,6 +142,14 @@ void loop() {
     return;
   }
 
+  if (millis() < bloqueadoAte) {  // bloqueado: ignora teclas, mostra contagem
+    resetEntrada();
+    int restante = (int)((bloqueadoAte - millis() + 999) / 1000);
+    sevseg.setNumber(restante, 0);
+    sevseg.refreshDisplay();
+    return;
+  }
+
   if (k) {
     if (k >= '0' && k <= '9') {
       if (n < 4) buf[n++] = k;
@@ -138,9 +167,10 @@ void loop() {
     // 'B', 'C': reservadas
   }
 
-  // desenho da entrada: "----" com os digitos preenchendo da esquerda
+  // desenho da entrada MASCARADA: '-' vazio, 'H' para cada digito ja digitado
+  // ('H' acende B,C,E,F,G com A e D apagados: mascara em X/H, nao revela o numero)
   char disp[5] = "----";
-  for (byte i = 0; i < n; i++) disp[i] = buf[i];
+  for (byte i = 0; i < n; i++) disp[i] = 'H';
   disp[4] = '\0';
   sevseg.setChars(disp);
   sevseg.refreshDisplay();

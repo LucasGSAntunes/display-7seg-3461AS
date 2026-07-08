@@ -79,6 +79,14 @@ Teclas:
   salva e mostra `donE`. Atual errada → `Err`.
 - **`#`** — liga/desliga stand-by (display apagado + teclado ignorado).
 
+Segurança:
+- **Entrada mascarada:** slots vazios = `-`; cada dígito digitado vira `H`
+  (segmentos B,C,E,F,G; A e D apagados). Não revela o número (vale também na
+  troca de senha).
+- **Limite de tentativas:** 3 erros seguidos → bloqueia 30s com contagem
+  regressiva no display (`Loc` → `30`...`1`). Acertar zera o contador. O bloqueio
+  é em RAM (desligar a placa reseta) — sem RTC não dá pra persistir tempo.
+
 Notas de implementação:
 - 7 segmentos não renderiza "OK" (o "K" fica ilegível), então o feedback usa
   palavras que saem limpas: `OPEn`, `Err`, `donE`, `SEt`, `OLd`.
